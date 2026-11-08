@@ -68,9 +68,9 @@ function GamesPageContent() {
     setRecords(getStoredRecords());
   };
 
-  // Filter games based on search query and category
-  const filteredGames = useMemo(() => {
-    return PLAYZONE_GAMES.filter((g) => {
+  // Split games into Available (Top) and Coming Soon (Down)
+  const { availableGames, comingSoonGames, totalGamesCount } = useMemo(() => {
+    const list = PLAYZONE_GAMES.filter((g) => {
       const matchesCategory =
         selectedCategory === 'all' || g.categorySlug === selectedCategory;
       const q = searchQuery.toLowerCase().trim();
@@ -81,12 +81,165 @@ function GamesPageContent() {
         g.categoryTitle.toLowerCase().includes(q);
       return matchesCategory && matchesSearch;
     });
+
+    return {
+      availableGames: list.filter((g) => !g.comingSoon),
+      comingSoonGames: list.filter((g) => g.comingSoon),
+      totalGamesCount: list.length,
+    };
   }, [searchQuery, selectedCategory]);
 
-  // Daily Challenge Games
+  // Daily Challenge Games - ensure available games come first
   const dailyGames = useMemo(() => {
-    return PLAYZONE_GAMES.filter((g) => g.dailyChallenge);
+    return PLAYZONE_GAMES.filter((g) => g.dailyChallenge).sort((a, b) => {
+      if (!a.comingSoon && b.comingSoon) return -1;
+      if (a.comingSoon && !b.comingSoon) return 1;
+      return 0;
+    });
   }, []);
+
+  // Render individual game card
+  const renderGameCard = (game: GameMetadata) => {
+    const recordKey = `${game.slug}__medium`;
+    const record = records[recordKey];
+
+    return (
+      <div
+        key={game.id}
+        onClick={() => handleOpenGame(game)}
+        className={`group relative rounded-3xl bg-white dark:bg-slate-900 border overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col justify-between cursor-pointer ${
+          game.comingSoon
+            ? 'border-slate-200/80 dark:border-slate-800 opacity-90 hover:opacity-100 hover:border-amber-400/80 hover:shadow-amber-500/10'
+            : 'border-emerald-500/40 dark:border-emerald-500/40 hover:border-emerald-500 hover:shadow-emerald-500/15 ring-1 ring-emerald-500/20'
+        }`}
+      >
+        {/* Game Cover Image (Shown Prominently Outside) */}
+        <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-slate-950">
+          {game.coverImage ? (
+            <img
+              src={game.coverImage}
+              alt={game.title}
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-tr from-purple-900 via-indigo-900 to-slate-900" />
+          )}
+
+          {/* Dark Gradient Overlay for Badges & Contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/25 to-black/40 pointer-events-none" />
+
+          {/* Top Badges */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+            <span className="text-[10px] px-2.5 py-1 rounded-full font-black bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-sm flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[13px] text-purple-400">
+                {game.categorySlug.includes('math') ? 'calculate' : 'sports_esports'}
+              </span>
+              <span>{game.categoryTitle}</span>
+            </span>
+
+            {game.comingSoon ? (
+              <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black bg-amber-500/95 text-slate-950 shadow-md flex items-center gap-1">
+                <span>🚀 COMING SOON</span>
+              </span>
+            ) : (
+              <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black bg-emerald-500 text-slate-950 shadow-md flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                <span>PLAY NOW</span>
+              </span>
+            )}
+          </div>
+
+          {/* Center Play Button Overlay on Hover */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
+            {game.comingSoon ? (
+              <div className="px-4 py-2 rounded-2xl bg-black/85 text-amber-300 font-black text-xs shadow-xl border border-amber-500/30 backdrop-blur-md">
+                🚀 Unlocks in next expansion
+              </div>
+            ) : (
+              <div className="w-13 h-13 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-xl shadow-emerald-500/50 scale-90 group-hover:scale-100 transition-transform duration-300 backdrop-blur-xs border border-white/30 font-black">
+                <Play className="w-6 h-6 fill-current ml-0.5 text-slate-950" />
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Info on Image */}
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between pointer-events-none">
+            <div className="flex items-center gap-1 flex-wrap">
+              {game.difficultyLevels.map((lvl) => (
+                <span
+                  key={lvl}
+                  className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white font-bold capitalize border border-white/10"
+                >
+                  {lvl}
+                </span>
+              ))}
+            </div>
+            <span className="text-[10px] font-extrabold text-amber-300 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-amber-400/30">
+              {game.metricLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* Card Content Below Image */}
+        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+          <div>
+            <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors tracking-tight flex items-center gap-2">
+              <span>{game.title}</span>
+              {!game.comingSoon && (
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              )}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+              {game.description}
+            </p>
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+            <div className="text-[11px] text-slate-400 font-medium truncate">
+              {record ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                  <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                  <span>PB: {game.higherIsBetter ? `${record.bestScore} pts` : `${record.bestTimeMs} ms`}</span>
+                </span>
+              ) : (
+                <span className="text-slate-400">
+                  {game.comingSoon ? 'Expanding soon' : 'Ready to play'}
+                </span>
+              )}
+            </div>
+
+            {game.comingSoon ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenGame(game);
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 font-bold text-xs border border-slate-200 dark:border-slate-700 hover:border-amber-400 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Coming Soon</span>
+                <span>⏳</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenGame(game);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/25 group-hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Play className="w-3 h-3 fill-current" />
+                <span>Play Now</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col justify-between">
@@ -319,7 +472,7 @@ function GamesPageContent() {
                 </div>
 
                 <div className="text-xs text-slate-500 font-semibold">
-                  Showing <strong>{filteredGames.length}</strong> of 30 games
+                  Showing <strong>{totalGamesCount}</strong> games (<span className="text-emerald-600 dark:text-emerald-400 font-black">{availableGames.length} available</span>)
                 </div>
               </div>
 
@@ -367,143 +520,77 @@ function GamesPageContent() {
               </div>
             </div>
 
-            {/* 30 Games Grid Matrix */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-              {filteredGames.map((game) => {
-                const recordKey = `${game.slug}__medium`;
-                const record = records[recordKey];
-
-                return (
-                  <div
-                    key={game.id}
-                    onClick={() => handleOpenGame(game)}
-                    className="group relative rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 overflow-hidden hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300 flex flex-col justify-between cursor-pointer"
-                  >
-                    {/* Game Cover Image (Shown Prominently Outside) */}
-                    <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-slate-950">
-                      {game.coverImage ? (
-                        <img
-                          src={game.coverImage}
-                          alt={game.title}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-tr from-purple-900 via-indigo-900 to-slate-900" />
-                      )}
-
-                      {/* Dark Gradient Overlay for Badges & Contrast */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/25 to-black/40 pointer-events-none" />
-
-                      {/* Top Badges */}
-                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
-                        <span className="text-[10px] px-2.5 py-1 rounded-full font-black bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-sm flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[13px] text-purple-400">
-                            {game.categorySlug.includes('math') ? 'calculate' : 'sports_esports'}
-                          </span>
-                          <span>{game.categoryTitle}</span>
-                        </span>
-
-                        {game.comingSoon ? (
-                          <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black bg-amber-500/95 text-slate-950 shadow-md flex items-center gap-1">
-                            <span>🚀 COMING SOON</span>
-                          </span>
-                        ) : (
-                          <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black bg-emerald-500 text-slate-950 shadow-md flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            <span>PLAY NOW</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Center Play Button Overlay on Hover */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                        {game.comingSoon ? (
-                          <div className="px-4 py-2 rounded-2xl bg-black/85 text-amber-300 font-black text-xs shadow-xl border border-amber-500/30 backdrop-blur-md">
-                            🚀 Unlocks in next expansion
-                          </div>
-                        ) : (
-                          <div className="w-13 h-13 rounded-full bg-purple-600/90 text-white flex items-center justify-center shadow-xl shadow-purple-600/50 scale-90 group-hover:scale-100 transition-transform duration-300 backdrop-blur-xs border border-white/30">
-                            <Play className="w-6 h-6 fill-current ml-0.5 text-white" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Bottom Info on Image */}
-                      <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between pointer-events-none">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {game.difficultyLevels.map((lvl) => (
-                            <span
-                              key={lvl}
-                              className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/20 backdrop-blur-md text-white font-bold capitalize border border-white/10"
-                            >
-                              {lvl}
-                            </span>
-                          ))}
-                        </div>
-                        <span className="text-[10px] font-extrabold text-amber-300 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-amber-400/30">
-                          {game.metricLabel}
-                        </span>
-                      </div>
+            {/* 1. TOP SECTION: AVAILABLE GAMES (PLAY NOW) */}
+            {availableGames.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-500/30 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/30 shrink-0">
+                      <Sparkles className="w-5 h-5" />
                     </div>
-
-                    {/* Card Content Below Image */}
-                    <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
-                      <div>
-                        <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors tracking-tight">
-                          {game.title}
-                        </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
-                          {game.description}
-                        </p>
-                      </div>
-
-                      {/* Bottom Action Footer */}
-                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                        <div className="text-[11px] text-slate-400 font-medium truncate">
-                          {record ? (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                              <Trophy className="w-3.5 h-3.5 text-amber-500" />
-                              <span>PB: {game.higherIsBetter ? `${record.bestScore} pts` : `${record.bestTimeMs} ms`}</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">
-                              {game.comingSoon ? 'Expanding soon' : 'Ready to play'}
-                            </span>
-                          )}
-                        </div>
-
-                        {game.comingSoon ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenGame(game);
-                            }}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 font-bold text-xs border border-slate-200 dark:border-slate-700 hover:border-amber-400 transition-all cursor-pointer flex items-center gap-1.5"
-                          >
-                            <span>Coming Soon</span>
-                            <span>⏳</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenGame(game);
-                            }}
-                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-md shadow-purple-600/25 group-hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
-                          >
-                            <Play className="w-3 h-3 fill-current" />
-                            <span>Play Now</span>
-                          </button>
-                        )}
-                      </div>
+                    <div>
+                      <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Available Games (Play Now)</span>
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-black shadow-xs">
+                          {availableGames.length} READY
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        Zero install browser games • 60-second speed tests • 2048 &amp; Mental Math
+                      </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                  {availableGames.map(renderGameCard)}
+                </div>
+              </div>
+            )}
+
+            {/* 2. DOWN SECTION: UPCOMING GAMES (COMING SOON) */}
+            {comingSoonGames.length > 0 && (
+              <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-3xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center font-black shrink-0">
+                      <span className="text-lg">⏳</span>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base sm:text-lg text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <span>Upcoming Games (Coming Soon)</span>
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold border border-slate-300 dark:border-slate-700">
+                          {comingSoonGames.length} EXPANDING SOON
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Word puzzles, reaction timers, memory boosters, and trivia games unlocking in next expansion
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                  {comingSoonGames.map(renderGameCard)}
+                </div>
+              </div>
+            )}
+
+            {/* EMPTY STATE */}
+            {availableGames.length === 0 && comingSoonGames.length === 0 && (
+              <div className="text-center py-12 space-y-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8">
+                <div className="text-3xl">🔍</div>
+                <h4 className="text-base font-bold text-slate-900 dark:text-white">No games found</h4>
+                <p className="text-xs text-slate-500">No games matched your search criteria.</p>
+                <button
+                  type="button"
+                  onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
           </section>
         )}
 
