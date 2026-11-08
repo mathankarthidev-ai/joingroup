@@ -1,0 +1,35 @@
+{
+  "name": "grouphub",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node dev-runner.js dev",
+    "build": "node dev-runner.js build",
+    "start": "node dev-runner.js start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/run-tests.mjs",
+    "db:check": "node scripts/check-db.mjs",
+    "db:generate-sql": "node scripts/generate-sql.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "@types/three": "^0.187.0",
+    "lucide-react": "^1.33.0",
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "^0.187.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

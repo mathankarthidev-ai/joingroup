@@ -1,0 +1,44 @@
+# ====================================================================
+# Supabase Local & CI Configuration
+# Architecture: MAION AI Technologies — Nammabus & JoinGroupLinks
+# ====================================================================
+
+project_id = "nammabus-platform"
+
+[api]
+enabled = true
+port = 54321
+# Deliberately expose only public and consumer schemas; keep internal schemas private
+schemas = ["public", "geo", "catalog", "directory", "community", "commerce"]
+extra_search_path = ["public", "extensions"]
+max_rows = 100
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = true
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[auth]
+enabled = true
+port = 54324
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://nammabus.in", "https://joingrouplinks.in"]
+jwt_expiry = 3600
+enable_signup = true
+
+[storage]
+enabled = true
+port = 54323
+image_transformation = { enabled = true }
+
+[analytics]
+enabled = false
+port = 54327
+vector_port = 54328
