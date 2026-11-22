@@ -2,12 +2,18 @@ import { MetadataRoute } from 'next';
 import { SAFE_COUNTRIES, CATEGORIES, INITIAL_GROUPS, BLOG_POSTS } from '@/lib/data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://grouphub.example.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://joingroup-ashy.vercel.app';
 
   const staticRoutes = [
     '',
     '/whatsapp',
     '/telegram',
+    '/games',
+    '/local-biz',
+    '/local-biz/add-business',
+    '/local-biz/categories',
+    '/local-biz/cities',
+    '/login',
     '/submit-group',
     '/promote',
     '/blog',
@@ -20,9 +26,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/community-guidelines',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date('2026-08-19'),
+    lastModified: new Date('2026-11-22'),
     changeFrequency: 'daily' as const,
-    priority: route === '' ? 1.0 : 0.8,
+    priority: route === '' ? 1.0 : route === '/games' || route === '/local-biz' ? 0.9 : 0.8,
   }));
 
   // Country GEO routes

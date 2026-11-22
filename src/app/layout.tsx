@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     'Telegram channels India',
     'Search WhatsApp groups',
   ],
-  metadataBase: new URL('https://grouphub.example.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://joingroup-ashy.vercel.app'),
 };
 
 export default function RootLayout({
